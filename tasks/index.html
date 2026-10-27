@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gamified ADHD Task Planner</title>
+<style>
+  :root{
+    --bg: #fdf6f0;
+    --bg-grad-1: #fde2e4;
+    --bg-grad-2: #e2f0cb;
+    --card: #ffffff;
+    --card-border: #f1e3e8;
+    --text: #4a4458;
+    --text-soft: #8a8298;
+    --accent: #b19cd9;
+    --accent-2: #ffb5a7;
+    --accent-3: #a7e8bd;
+    --accent-4: #ffd6a5;
+    --danger: #ff8fa3;
+    --shadow: 0 8px 24px rgba(177, 156, 217, 0.15);
+    --radius: 20px;
+    --easy: #a7e8bd;
+    --medium: #ffd6a5;
+    --hard: #ffb5a7;
+  }
+
+  [data-theme="dark"]{
+    --bg: #1c1a2b;
+    --bg-grad-1: #24213a;
+    --bg-grad-2: #1a2a2e;
+    --card: #262440;
+    --card-border: #35325a;
+    --text: #eae6f7;
+    --text-soft: #a8a3c4;
+    --accent: #c3aef2;
+    --accent-2: #ff9f9f;
+    --accent-3: #8fe3b0;
+    --accent-4: #ffcf8f;
+    --danger: #ff7a92;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --easy: #6fcf97;
+    --medium: #f2c66d;
+    --hard: #f2836d;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Quicksand", Roboto, sans-serif;
+    background: linear-gradient(135deg, var(--bg-grad-1), var(--bg), var(--bg-grad-2));
+    background-attachment: fixed;
+    color: var(--text);
+    transition: background .4s ease, color .4s ease;
+    padding: 24px 16px 80px;
+  }
+
+  .wrap{ max-width: 780px; margin: 0 auto; }
+
+  header{
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  h1{
+    font-size: 1.5rem;
+    margin: 0;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .theme-toggle{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor:pointer;
+    box-shadow: var(--shadow);
+    font-size: .85rem;
+    color: var(--text);
+    user-select:none;
+  }
+
+  .card{
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    margin-bottom: 18px;
+  }
+
+  .status-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .stat{
+    text-align:center;
+    padding: 10px 6px;
+    border-radius: 14px;
+    background: linear-gradient(160deg, transparent, rgba(177,156,217,0.08));
+  }
+  .stat .num{ font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+  .stat .label{ font-size: .72rem; color: var(--text-soft); text-transform: uppercase; letter-spacing:.04em; }
+
+  .level-row{
+    display:flex;
+    align-items:center;
+    gap: 14px;
+    margin-bottom: 8px;
+  }
+  .level-badge{
+    flex-shrink:0;
+    width: 56px; height:56px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent), var(--accent-2), var(--accent-3), var(--accent));
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:1.1rem; color:#fff;
+    box-shadow: 0 4px 14px rgba(177,156,217,.4);
+  }
+  .progress-outer{
+    flex:1;
+    height: 18px;
+    border-radius: 999px;
+    background: rgba(138,130,152,.15);
+    overflow:hidden;
+    position:relative;
+  }
+  .progress-inner{
+    height:100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent-3), var(--accent));
+    transition: width .5s cubic-bezier(.4,1.4,.6,1);
+    width:0%;
+  }
+  .progress-text{
+    text-align:right;
+    font-size:.75rem;
+    color: var(--text-soft);
+  }
+
+  .task-form{
+    display:flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  input[type="text"], select{
+    font-family: inherit;
+    font-size: .95rem;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+    background: var(--bg);
+    color: var(--text);
+    outline:none;
+  }
+  input[type="text"]{ flex:1 1 220px; }
+  select{ flex: 0 0 130px; }
+  input[type="text"]:focus, select:focus{ border-color: var(--accent); }
+
+  button{
+    font-family: inherit;
+    cursor:pointer;
+    border:none;
+    border-radius: 12px;
+    padding: 12px 18px;
+    font-weight:600;
+    font-size:.9rem;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  button:active{ transform: scale(.95); }
+  .btn-primary{ background: var(--accent); color:#fff; box-shadow: 0 4px 12px rgba(177,156,217,.4); }
+  .btn-primary:hover{ filter: brightness(1.05); }
+
+  .tabs{ display:flex; gap:8px; margin: 14px 0 4px; }
+  .tab{
+    background: transparent;
+    color: var(--text-soft);
+    border: 1px solid var(--card-border);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size:.8rem;
+  }
+  .tab.active{ background: var(--accent); color:#fff; border-color: var(--accent); }
+
+  ul.task-list{ list-style:none; margin: 10px 0 0; padding:0; display:flex; flex-direction:column; gap:10px; }
+  .task{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 12px 14px;
+    animation: pop-in .25s ease;
+  }
+  @keyframes pop-in{ from{ opacity:0; transform: translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .task.done{ opacity:.55; }
+  .task.done .title{ text-decoration: line-through; }
+
+  .checkbox{
+    width: 26px; height:26px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    flex-shrink:0;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size: .8rem;
+    color: transparent;
+    transition: all .2s ease;
+  }
+  .checkbox.checked{ background: var(--accent); color:#fff; }
+
+  .task .title{ flex:1; font-size:.95rem; word-break: break-word; }
+  .diff-pill{
+    font-size:.7rem;
+    font-weight:700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    color:#4a4458;
+    white-space:nowrap;
+  }
+  .diff-easy{ background: var(--easy); }
+  .diff-medium{ background: var(--medium); }
+  .diff-hard{ background: var(--hard); }
+
+  .icon-btn{
+    background: transparent;
+    border:none;
+    color: var(--text-soft);
+    font-size: 1rem;
+    padding: 4px 6px;
+  }
+  .icon-btn:hover{ color: var(--danger); }
+
+  .empty-state{
+    text-align:center;
+    color: var(--text-soft);
+    padding: 30px 10px;
+    font-size: .9rem;
+  }
+
+  .shop-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .reward{
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 14px;
+    display:flex;
+    flex-direction:column;
+    gap: 8px;
+  }
+  .reward .r-title{ font-weight:600; font-size:.9rem; }
+  .reward .r-cost{ font-size: .8rem; color: var(--text-soft); }
+  .reward button{
+    background: var(--accent-3);
+    color:#264d36;
+    font-size:.8rem;
+    padding: 8px 10px;
+  }
+  [data-theme="dark"] .reward button{ color:#0d2417; }
+  .reward button:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .reward-form{ display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+  .reward-form input[type="text"]{ flex:1 1 160px; }
+  .reward-form input[type="number"]{
+    width: 90px;
+    font-family: inherit;
+    padding: 12px 10px;
+    border-radius: 12px;
+    border: 1px solid var(--card-border);
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  h2{ font-size: 1.05rem; margin: 0 0 12px; display:flex; align-items:center; gap:8px; }
+
+  .toast{
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: var(--accent);
+    color:#fff;
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-weight:700;
+    box-shadow: 0 8px 20px rgba(0,0,0,.2);
+    opacity:0;
+    pointer-events:none;
+    transition: all .35s cubic-bezier(.4,1.4,.6,1);
+    z-index: 999;
+    font-size:.9rem;
+    white-space:nowrap;
+  }
+  .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+
+  .levelup-overlay{
+    position:fixed; inset:0;
+    background: rgba(0,0,0,.35);
+    display:flex; align-items:center; justify-content:center;
+    z-index: 1000;
+    opacity:0; pointer-events:none;
+    transition: opacity .3s ease;
+  }
+  .levelup-overlay.show{ opacity:1; pointer-events:all; }
+  .levelup-card{
+    background: var(--card);
+    border-radius: 24px;
+    padding: 40px 30px;
+    text-align:center;
+    max-width: 320px;
+    transform: scale(.8);
+    transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+    box-shadow: 0 20px 50px rgba(0,0,0,.3);
+  }
+  .levelup-overlay.show .levelup-card{ transform: scale(1); }
+  .levelup-card .emoji{ font-size: 3rem; }
+  .levelup-card h3{ margin: 10px 0 4px; font-size:1.4rem; }
+  .levelup-card p{ color: var(--text-soft); margin: 0 0 16px; font-size:.9rem; }
+
+  footer{
+    text-align:center;
+    font-size:.75rem;
+    color: var(--text-soft);
+    margin-top: 30px;
+  }
+
+  @media (max-width: 480px){
+    .shop-grid{ grid-template-columns: 1fr; }
+    .status-grid{ grid-template-columns: repeat(3,1fr); }
+    .stat .num{ font-size:1.1rem; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="wrap">
+
+  <header>
+    <h1>🎮 ADHD Planner</h1>
+    <div class="theme-toggle" id="themeToggle">
+      <span id="themeIcon">🌙</span> <span id="themeLabel">Dark mode</span>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="level-row">
+      <div class="level-badge" id="levelBadge">1</div>
+      <div style="flex:1">
+        <div class="progress-outer"><div class="progress-inner" id="progressBar"></div></div>
+        <div class="progress-text" id="progressText">0 / 100 XP to next level</div>
+      </div>
+    </div>
+    <div class="status-grid">
+      <div class="stat"><div class="num" id="statXP">0</div><div class="label">Total XP</div></div>
+      <div class="stat"><div class="num" id="statCoins">0</div><div class="label">Coins 🪙</div></div>
+      <div class="stat"><div class="num" id="statStreak">0</div><div class="label">Day Streak 🔥</div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>➕ New Task</h2>
+    <div class="task-form">
+      <input type="text" id="taskInput" placeholder="e.g. Do the dishes..." maxlength="80">
+      <select id="diffSelect">
+        <option value="easy">Easy · 10 XP</option>
+        <option value="medium">Medium · 25 XP</option>
+        <option value="hard">Hard · 50 XP</option>
+      </select>
+      <button class="btn-primary" id="addBtn">Add</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-filter="all">All</button>
+      <button class="tab" data-filter="active">Active</button>
+      <button class="tab" data-filter="done">Completed</button>
+    </div>
+
+    <ul class="task-list" id="taskList"></ul>
+    <div class="empty-state" id="emptyState">No tasks yet — add your first task above! ✨</div>
+  </section>
+
+  <section class="card">
+    <h2>🛍️ Reward Shop</h2>
+    <div class="shop-grid" id="shopGrid"></div>
+
+    <div class="reward-form">
+      <input type="text" id="rewardName" placeholder="Custom reward name...">
+      <input type="number" id="rewardCost" placeholder="Cost" min="1">
+      <button class="btn-primary" id="addRewardBtn">Add Reward</button>
+    </div>
+  </section>
+
+  <footer>Your data is saved automatically in this browser (localStorage). Good luck! 💜</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="levelup-overlay" id="levelUpOverlay">
+  <div class="levelup-card">
+    <div class="emoji">🎉</div>
+    <h3 id="levelUpTitle">Level 2 reached!</h3>
+    <p>Amazing work, keep it up!</p>
+    <button class="btn-primary" id="levelUpClose">Awesome!</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const STORAGE_KEY = "adhd_task_planner_state_v1";
+  const XP_VALUES = { easy: 10, medium: 25, hard: 50 };
+  const DIFF_LABEL = { easy: "Easy", medium: "Medium", hard: "Hard" };
+
+  const DEFAULT_REWARDS = [
+    { id: "r1", name: "15 min break, guilt-free", cost: 30 },
+    { id: "r2", name: "An episode of your favorite show", cost: 60 },
+    { id: "r3", name: "Favorite snack", cost: 20 },
+    { id: "r4", name: "30 min of gaming / hobby time", cost: 50 },
+    { id: "r5", name: "New podcast episode + coffee", cost: 40 },
+    { id: "r6", name: "A guilt-free day off", cost: 100 },
+  ];
+
+  function xpForLevel(level){
+    return 100 + (level - 1) * 50;
+  }
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){ }
+    return {
+      xp: 0,
+      level: 1,
+      coins: 0,
+      streak: 0,
+      lastCompletionDate: null,
+      tasks: [],
+      rewards: DEFAULT_REWARDS.slice(),
+      theme: "light",
+      filter: "all",
+    };
+  }
+
+  let state = loadState();
+  if(!state.rewards) state.rewards = DEFAULT_REWARDS.slice();
+  if(!state.filter) state.filter = "all";
+
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  const el = {
+    body: document.body,
+    themeToggle: document.getElementById("themeToggle"),
+    themeIcon: document.getElementById("themeIcon"),
+    themeLabel: document.getElementById("themeLabel"),
+    levelBadge: document.getElementById("levelBadge"),
+    progressBar: document.getElementById("progressBar"),
+    progressText: document.getElementById("progressText"),
+    statXP: document.getElementById("statXP"),
+    statCoins: document.getElementById("statCoins"),
+    statStreak: document.getElementById("statStreak"),
+    taskInput: document.getElementById("taskInput"),
+    diffSelect: document.getElementById("diffSelect"),
+    addBtn: document.getElementById("addBtn"),
+    taskList: document.getElementById("taskList"),
+    emptyState: document.getElementById("emptyState"),
+    tabs: document.querySelectorAll(".tab"),
+    shopGrid: document.getElementById("shopGrid"),
+    rewardName: document.getElementById("rewardName"),
+    rewardCost: document.getElementById("rewardCost"),
+    addRewardBtn: document.getElementById("addRewardBtn"),
+    toast: document.getElementById("toast"),
+    levelUpOverlay: document.getElementById("levelUpOverlay"),
+    levelUpTitle: document.getElementById("levelUpTitle"),
+    levelUpClose: document.getElementById("levelUpClose"),
+  };
+
+  function applyTheme(){
+    el.body.setAttribute("data-theme", state.theme);
+    if(state.theme === "dark"){
+      el.themeIcon.textContent = "☀️";
+      el.themeLabel.textContent = "Pastel mode";
+    } else {
+      el.themeIcon.textContent = "🌙";
+      el.themeLabel.textContent = "Dark mode";
+    }
+  }
+
+  el.themeToggle.addEventListener("click", () => {
+    state.theme = state.theme === "dark" ? "light" : "dark";
+    applyTheme();
+    save();
+  });
+
+  let toastTimer = null;
+  function showToast(msg){
+    el.toast.textContent = msg;
+    el.toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.toast.classList.remove("show"), 2200);
+  }
+
+  function recalcLevelFromXP(){
+    let level = 1;
+    let remaining = state.xp;
+    while(remaining >= xpForLevel(level)){
+      remaining -= xpForLevel(level);
+      level += 1;
+    }
+    return { level, remaining };
+  }
+
+  function renderStatus(){
+    const { level, remaining } = recalcLevelFromXP();
+    state.level = level;
+    const needed = xpForLevel(level);
+    const pct = Math.min(100, Math.round((remaining / needed) * 100));
+
+    el.levelBadge.textContent = level;
+    el.progressBar.style.width = pct + "%";
+    el.progressText.textContent = `${remaining} / ${needed} XP to next level`;
+    el.statXP.textContent = state.xp;
+    el.statCoins.textContent = state.coins;
+    el.statStreak.textContent = state.streak;
+  }
+
+  function addXP(amount){
+    const before = recalcLevelFromXP().level;
+    state.xp += amount;
+    state.coins += amount;
+    const after = recalcLevelFromXP().level;
+    if(after > before){
+      triggerLevelUp(after);
+    }
+    updateStreak();
+    renderStatus();
+    save();
+  }
+
+  function updateStreak(){
+    const today = new Date().toDateString();
+    if(state.lastCompletionDate === today) return;
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    if(state.lastCompletionDate === yesterday){
+      state.streak += 1;
+    } else {
+      state.streak = 1;
+    }
+    state.lastCompletionDate = today;
+  }
+
+  function triggerLevelUp(newLevel){
+    el.levelUpTitle.textContent = `Level ${newLevel} reached!`;
+    el.levelUpOverlay.classList.add("show");
+  }
+
+  el.levelUpClose.addEventListener("click", () => {
+    el.levelUpOverlay.classList.remove("show");
+  });
+
+  function addTask(title, difficulty){
+    state.tasks.unshift({
+      id: "t" + Date.now() + Math.random().toString(16).slice(2),
+      title,
+      difficulty,
+      done: false,
+      createdAt: Date.now(),
+    });
+    save();
+    renderTasks();
+  }
+
+  function toggleTask(id){
+    const task = state.tasks.find(t => t.id === id);
+    if(!task) return;
+    task.done = !task.done;
+    if(task.done){
+      const xp = XP_VALUES[task.difficulty] || 0;
+      addXP(xp);
+      showToast(`+${xp} XP! Great job 🌟`);
+    }
+    save();
+    renderTasks();
+  }
+
+  function deleteTask(id){
+    state.tasks = state.tasks.filter(t => t.id !== id);
+    save();
+    renderTasks();
+  }
+
+  function renderTasks(){
+    const filter = state.filter;
+    const filtered = state.tasks.filter(t => {
+      if(filter === "active") return !t.done;
+      if(filter === "done") return t.done;
+      return true;
+    });
+
+    el.taskList.innerHTML = "";
+    el.emptyState.style.display = filtered.length ? "none" : "block";
+
+    filtered.forEach(task => {
+      const li = document.createElement("li");
+      li.className = "task" + (task.done ? " done" : "");
+
+      const checkbox = document.createElement("div");
+      checkbox.className = "checkbox" + (task.done ? " checked" : "");
+      checkbox.textContent = task.done ? "✓" : "";
+      checkbox.addEventListener("click", () => toggleTask(task.id));
+
+      const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = task.title;
+
+      const pill = document.createElement("span");
+      pill.className = "diff-pill diff-" + task.difficulty;
+      pill.textContent = `${DIFF_LABEL[task.difficulty]} · ${XP_VALUES[task.difficulty]} XP`;
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "icon-btn";
+      delBtn.textContent = "✕";
+      delBtn.title = "Delete task";
+      delBtn.addEventListener("click", () => deleteTask(task.id));
+
+      li.append(checkbox, title, pill, delBtn);
+      el.taskList.appendChild(li);
+    });
+  }
+
+  el.addBtn.addEventListener("click", () => {
+    const title = el.taskInput.value.trim();
+    if(!title) return;
+    addTask(title, el.diffSelect.value);
+    el.taskInput.value = "";
+    el.taskInput.focus();
+  });
+
+  el.taskInput.addEventListener("keydown", (e) => {
+    if(e.key === "Enter") el.addBtn.click();
+  });
+
+  el.tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      el.tabs.forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      state.filter = tab.dataset.filter;
+      save();
+      renderTasks();
+    });
+  });
+
+  function renderShop(){
+    el.shopGrid.innerHTML = "";
+    state.rewards.forEach(reward => {
+      const card = document.createElement("div");
+      card.className = "reward";
+
+      const title = document.createElement("div");
+      title.className = "r-title";
+      title.textContent = reward.name;
+
+      const cost = document.createElement("div");
+      cost.className = "r-cost";
+      cost.textContent = `${reward.cost} 🪙`;
+
+      const buyBtn = document.createElement("button");
+      buyBtn.textContent = "Claim Reward";
+      buyBtn.disabled = state.coins < reward.cost;
+      buyBtn.addEventListener("click", () => buyReward(reward.id));
+
+      card.append(title, cost, buyBtn);
+      el.shopGrid.appendChild(card);
+    });
+  }
+
+  function buyReward(id){
+    const reward = state.rewards.find(r => r.id === id);
+    if(!reward || state.coins < reward.cost) return;
+    state.coins -= reward.cost;
+    renderStatus();
+    renderShop();
+    save();
+    showToast(`Claimed: ${reward.name} 🎁`);
+  }
+
+  el.addRewardBtn.addEventListener("click", () => {
+    const name = el.rewardName.value.trim();
+    const cost = parseInt(el.rewardCost.value, 10);
+    if(!name || !cost || cost <= 0) return;
+    state.rewards.push({ id: "r" + Date.now(), name, cost });
+    el.rewardName.value = "";
+    el.rewardCost.value = "";
+    save();
+    renderShop();
+  });
+
+  applyTheme();
+  el.tabs.forEach(t => t.classList.toggle("active", t.dataset.filter === state.filter));
+  renderStatus();
+  renderTasks();
+  renderShop();
+
+})();
+</script>
+<script>
+/* install + offline support when opened from the web address (added for hosting, 2026-10-26) */
+if(location.protocol==="https:" || location.hostname==="localhost"){
+  for(const [rel, href] of [["manifest","manifest.webmanifest"],["apple-touch-icon","icon-180.png"]]){ const l = document.createElement("link"); l.rel = rel; l.href = href; document.head.appendChild(l); }
+  if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
